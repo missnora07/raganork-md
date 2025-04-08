@@ -6,11 +6,9 @@ Raganork MD - Sourav KL11
 const {
   Module
 } = require('../main');
-const fs = require("fs");
 const {
   MODE,
   HANDLERS,
-  AUDIO_DATA,
   BOT_INFO,
   settingsMenu
 } = require('../config');
@@ -21,8 +19,7 @@ const {
   getString
 } = require('./misc/lang');
 const {
-  getJson,
-  searchSong
+  getJson
 } = require('./misc/misc');
 const {
     ytTitle,downloadYT, dlSong, ytv, getResolutions, getSearchImage, searchYT
@@ -31,8 +28,6 @@ const Lang = getString('scrapers');
 const {setVar} = require('./manage');
 const {
   skbuffer,
-  ytdlServer,
-  getVideo,
   addInfo
 } = require('raganork-bot');
 let configs = settingsMenu
@@ -47,7 +42,35 @@ Module({
   use: 'download'
 }, (async (message, match) => {
 if (!match[1]) return message.sendReply("_Need song name, eg: .play starboy_")
+if (match[1].includes('open.spotify.com')) return message.sendReply("_Please use the .spotify command!_")
 let sr = (await searchYT(match[1])).videos[0];
+  const title = await ytTitle(sr.id)
+  await message.sendReply(`*Downloading:* _${title}_`)
+  let sdl = await dlSong(sr.id);
+  ffmpeg(sdl)
+  .save('./temp/song.mp3')
+  .on('end', async () => { 
+  var song = await addInfo('./temp/song.mp3',title,BOT_INFO.split(";")[0],"Raganork audio downloader",await skbuffer(`https://i3.ytimg.com/vi/${sr.id}/hqdefault.jpg`))
+  return await message.client.sendMessage(message.jid, {
+      audio:song,
+      mimetype: 'audio/mp4'
+  }, {
+      quoted: message.data
+  });
+});
+}));
+Module({
+  pattern: 'spotify ?(.*)',
+  fromMe: fm,
+  desc: "Spotify audio downloader",
+  usage:'.spotify link here',
+  use: 'download'
+}, (async (message, match) => {
+  match[1] = match[1].match(/\bhttps?:\/\/\S+/gi)?.[0]
+if (!match[1]) return message.sendReply("_Need a spotify URL_")
+  let spotifyTitle = await require("axios")(`https://api.raganork.online/api/spotify?url=${match[1]}`)
+  if (!spotifyTitle.data.result) return message.sendReply("_Download failed, please search the same using the .song command_")
+  let sr = (await searchYT(spotifyTitle.data.result)).videos[0];
   const title = await ytTitle(sr.id)
   await message.sendReply(`*Downloading:* _${title}_`)
   let sdl = await dlSong(sr.id);
@@ -121,6 +144,7 @@ Module({
   use: 'download'
 }, (async (message, match) => {
   if (!match[1]) return message.sendReply(Lang.NEED_TEXT_SONG)
+  if (match[1].includes('open.spotify.com')) return message.sendReply("_Please use the .spotify command!_")
   var link = match[1].match(/\bhttps?:\/\/\S+/gi)
   if (link !== null && getID.test(link[0])) {
   let v_id = link[0].match(getID)[1]

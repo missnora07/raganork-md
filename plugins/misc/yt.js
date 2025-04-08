@@ -17,7 +17,8 @@ async function getVideo(vid,res_='360p',m=false){
   const stream = await yt.download(vid, {
     type: 'video', 
     quality: res_,
-    format: 'mp4'
+    format: 'mp4',
+    client: 'ANDROID'
   });
   let downloadedBytes = 0;
   const totalBytes = (await yt.getInfo(vid)).streaming_data.adaptive_formats.filter(e=>e.has_video && e.mime_type.includes('mp4') && e.quality_label == res_)[0].content_length;
@@ -58,7 +59,8 @@ async function dlSong(vid){
   const stream = await yt.download(vid, {
     type: 'audio', 
     quality: 'best',
-    format: 'mp4'
+    format: 'mp4',
+    client: 'ANDROID'
   });
   const file = createWriteStream(`./temp/song.m4a`);
   for await (const chunk of streamToIterable(stream)) {
@@ -68,7 +70,7 @@ async function dlSong(vid){
 }
 async function ytTitle(vid){
   const yt = await Innertube.create({ cache: new UniversalCache() });
-  const video = await yt.getBasicInfo(vid);
+  const video = await yt.getBasicInfo(vid,"TV_EMBEDDED");
   return video.basic_info.title
 }
 async function getSearchImage(vid){
